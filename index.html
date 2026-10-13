@@ -1,0 +1,132 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Spy-der Academy</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:"Trebuchet MS",system-ui,sans-serif;color:#fff;
+background:radial-gradient(circle at 50% 0,#4b1d7a,#1a0a2e 70%);user-select:none;touch-action:none}
+#app{position:relative;height:100%;max-width:520px;margin:0 auto;display:flex;flex-direction:column}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.screen.on{display:flex}
+h1{font-size:34px;margin:8px 0;color:#ff9a1f;text-shadow:3px 3px 0 #2b0b45}
+h2{font-size:26px;margin:6px 0;color:#7dff6a}
+p{font-size:20px;line-height:1.35;margin:10px 0}
+.btn{font:inherit;font-size:24px;font-weight:bold;padding:18px 28px;margin-top:20px;border:none;border-radius:40px;
+background:linear-gradient(#ffb347,#ff7a00);color:#2b0b45;box-shadow:0 6px 0 #a34700;min-width:240px}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #a34700}
+#mute{position:absolute;top:10px;right:10px;z-index:9;background:#2b0b45;border:2px solid #ff9a1f;color:#fff;border-radius:50%;width:44px;height:44px;font-size:20px}
+#hud{position:absolute;top:10px;left:12px;right:64px;display:none;justify-content:space-between;font-size:20px;font-weight:bold;z-index:5}
+#board{width:100%;display:flex;justify-content:center;position:relative;z-index:2}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+.grid{display:grid;gap:10px;width:100%;max-width:420px}
+.card{aspect-ratio:3/4;border-radius:14px;font-size:40px;display:flex;align-items:center;justify-content:center;background:#ff7a00;
+border:3px solid #ffd08a;transition:transform .2s;background-image:repeating-radial-gradient(circle at 50% 50%,transparent 0 8px,rgba(43,11,69,.35) 9px 10px)}
+.card.up{background:#f3e8ff;background-image:none;color:#000}
+.card.done{background:#7dff6a;background-image:none;opacity:.8}
+.holes{display:grid;gap:14px;width:100%;max-width:420px}
+.hole{aspect-ratio:1;border-radius:50%;background:radial-gradient(#0b0414,#2b0b45);border:4px solid #5a2a8a;display:flex;align-items:center;justify-content:center;font-size:56px}
+.hole.pop{background:radial-gradient(#7a3fb8,#2b0b45);animation:bob .3s}
+@keyframes bob{from{transform:scale(.6)}to{transform:scale(1)}}
+.web{position:absolute;opacity:.25;pointer-events:none}
+.badge{width:180px;height:180px}
+.fall{position:absolute;top:-60px;font-size:34px;animation:drop linear forwards;pointer-events:none}
+@keyframes drop{to{transform:translateY(110vh) rotate(360deg)}}
+</style></head><body><div id="app">
+<svg class="web" style="top:0;left:0" width="160" height="160" viewBox="0 0 100 100" stroke="#fff" fill="none" stroke-width="1">
+<path d="M0 0L100 30M0 0L70 70M0 0L30 100"/><path d="M20 6Q14 14 6 20M40 12Q28 28 12 40M60 18Q42 42 18 60M80 24Q56 56 24 80"/></svg>
+<button id="mute" aria-label="sound">🔊</button>
+<div id="hud"><span id="hudL"></span><span id="hudR"></span></div>
+
+<div class="screen on" id="s-intro">
+ <svg class="badge" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#2b0b45" stroke="#ff9a1f" stroke-width="4"/>
+ <g stroke="#111" stroke-width="3" stroke-linecap="round"><path d="M50 50L22 32M50 50L20 52M50 50L24 72M50 50L78 32M50 50L80 52M50 50L76 72"/></g>
+ <ellipse cx="50" cy="52" rx="14" ry="16" fill="#111"/><circle cx="50" cy="36" r="10" fill="#111"/>
+ <rect x="38" y="31" width="24" height="8" rx="4" fill="#7dff6a"/><circle cx="45" cy="35" r="2" fill="#111"/><circle cx="55" cy="35" r="2" fill="#111"/></svg>
+ <h1 id="greet">Welcome to Spy-der Academy!</h1>
+ <p>Your secret spy training starts now.</p>
+ <p><b>Pass three challenges to receive your first clue.</b></p>
+ <button class="btn" id="startBtn">Start Training!</button>
+</div>
+
+<div class="screen" id="s-howto"><h2 id="howT"></h2><p id="howP"></p><button class="btn" id="goBtn">Go!</button></div>
+
+<div class="screen" id="s-play" style="padding:60px 10px 10px"><canvas id="cv"></canvas><div id="board"></div></div>
+
+<div class="screen" id="s-result"><h1 id="resT">Challenge complete!</h1><p id="resP" style="font-size:24px"></p>
+<button class="btn" id="nextBtn">Give me the next challenge!</button></div>
+
+<div class="screen" id="s-final">
+ <h1>Mission complete!</h1>
+ <svg class="badge" viewBox="0 0 100 100"><path d="M50 4l12 10 16-2 4 16 12 10-8 14 4 16-16 4-8 14-16-6-16 6-8-14-16-4 4-16-8-14 12-10 4-16 16 2z" fill="#ff9a1f" stroke="#fff" stroke-width="2"/>
+ <circle cx="50" cy="50" r="28" fill="#2b0b45"/><text x="50" y="46" text-anchor="middle" font-size="9" fill="#7dff6a" font-weight="bold">SPY-DER</text>
+ <text x="50" y="58" text-anchor="middle" font-size="9" fill="#7dff6a" font-weight="bold">ACADEMY</text><text x="50" y="69" text-anchor="middle" font-size="8" fill="#fff">★ AGENT ★</text></svg>
+ <p id="finP">You've earned your Spy-der Academy badge!</p>
+ <h2>Check your mailbox for your next clue!</h2>
+ <button class="btn" id="againBtn" style="font-size:18px;min-width:0;padding:12px 22px">Play again</button>
+</div>
+</div>
+<script>
+const KIDS={briggs:{name:"Briggs",lvl:3},marley:{name:"Marley",lvl:2},maverick:{name:"Maverick",lvl:1}};
+const q=new URLSearchParams(location.search).get("agent");const K=KIDS[(q||"").toLowerCase()]||{name:"",lvl:2};
+const L=K.lvl, AG=K.name?("Agent "+K.name):"Agent";
+const $=id=>document.getElementById(id);
+$("greet").textContent=K.name?`Agent ${K.name}, welcome to Spy-der Academy!`:"Welcome to Spy-der Academy, Agent!";
+// sound
+let AC=null,muted=false;
+function tone(f,d=.12,type="square",v=.08){if(muted)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(AC.destination);
+g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+d);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+const good=()=>{tone(660);setTimeout(()=>tone(990),70)},bad=()=>tone(140,.25,"sawtooth"),fan=()=>[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.2),i*120));
+$("mute").onclick=()=>{muted=!muted;$("mute").textContent=muted?"🔇":"🔊"};
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id));$("hud").style.display=id==="s-play"?"flex":"none"}
+const GAMES=[
+ {t:"Challenge 1: Candy Catch",p:()=>`Slide your finger to move the cauldron. Catch the falling candy!${L>1?" Watch out for spiders 🕷️, they steal candy!":""}`,run:candy},
+ {t:"Challenge 2: Spider Web Match",p:()=>"Tap two cards to flip them. Find all the matching spooky pairs!",run:match},
+ {t:"Challenge 3: Bat Tap",p:()=>"Bats are popping out of their caves! Tap as many bats 🦇 as you can!"+(L>1?" Don't tap the friendly ghosts 👻.":""),run:bats}];
+let gi=0;
+$("startBtn").onclick=()=>{tone(440);gi=0;how()};
+function how(){$("howT").textContent=GAMES[gi].t;$("howP").textContent=GAMES[gi].p();show("s-howto")}
+$("goBtn").onclick=()=>{show("s-play");GAMES[gi].run(done)};
+function done(msg){good();$("resP").textContent=msg;$("resT").textContent=["Challenge 1 complete!","Challenge 2 complete!","Challenge 3 complete!"][gi];
+ $("nextBtn").textContent=gi<2?"Give me the next challenge!":"Finish my mission!";show("s-result")}
+$("nextBtn").onclick=()=>{gi++;if(gi<3)how();else finale()};
+$("againBtn").onclick=()=>{gi=0;how()};
+function finale(){show("s-final");fan();$("finP").textContent=`Amazing work, ${AG}! You've earned your Spy-der Academy badge!`;
+ for(let i=0;i<40;i++){const e=document.createElement("div");e.className="fall";e.textContent=["🕷️","🍬","🎃","⭐","🦇"][i%5];
+ e.style.left=Math.random()*95+"%";e.style.animationDuration=(2+Math.random()*3)+"s";e.style.animationDelay=Math.random()*2+"s";document.body.appendChild(e);setTimeout(()=>e.remove(),8000)}}
+function timer(sec,onTick,onEnd){let t=sec;$("hudR").textContent="⏱ "+t;const iv=setInterval(()=>{t--;$("hudR").textContent="⏱ "+t;if(t<=0){clearInterval(iv);onEnd()}},1000);return iv}
+// GAME 1
+function candy(cb){const cv=$("cv"),b=$("board");b.innerHTML="";cv.style.display="block";const ctx=cv.getContext("2d");
+ const W=cv.width=cv.clientWidth*devicePixelRatio,H=cv.height=cv.clientHeight*devicePixelRatio,s=devicePixelRatio;
+ const cw=[0,150,115,90][L]*s,sp=[0,2.2,3,3.8][L]*s,spiderP=[0,0,.18,.28][L];let x=W/2,score=0,items=[],run=true,last=0;
+ const mv=e=>{const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;x=(t.clientX-r.left)*s};cv.ontouchmove=cv.ontouchstart=cv.onpointermove=cv.onpointerdown=mv;
+ $("hudL").textContent="🍬 0";
+ function loop(ts){if(!run)return;if(ts-last>[0,700,600,480][L]){last=ts;items.push({x:30*s+Math.random()*(W-60*s),y:-20*s,sp:Math.random()<spiderP})}
+  ctx.clearRect(0,0,W,H);ctx.font=(40*s)+"px serif";ctx.textAlign="center";
+  for(const it of items){it.y+=sp*(it.sp?1.1:1);ctx.fillText(it.sp?"🕷️":["🍬","🍭","🍫","🍬"][Math.floor(it.x)%4],it.x,it.y)}
+  const cy=H-50*s;items=items.filter(it=>{if(it.y>cy-20*s&&it.y<cy+30*s&&Math.abs(it.x-x)<cw/2){if(it.sp){score=Math.max(0,score-2);bad()}else{score++;good()}$("hudL").textContent="🍬 "+score;return false}return it.y<H+40*s});
+  ctx.fillStyle="#1d1d1d";ctx.beginPath();ctx.ellipse(x,cy,cw/2,32*s,0,0,Math.PI);ctx.fill();ctx.fillStyle="#7dff6a";ctx.fillRect(x-cw/2-6*s,cy-8*s,cw+12*s,12*s);
+  requestAnimationFrame(loop)}
+ requestAnimationFrame(loop);
+ timer([0,30,35,40][L],0,()=>{run=false;ctx.clearRect(0,0,W,H);cv.ontouchmove=cv.ontouchstart=cv.onpointermove=cv.onpointerdown=null;
+  cb(`You caught ${score} piece${score==1?"":"s"} of candy. Nice work, ${AG}!`)})}
+// GAME 2
+function match(cb){$("cv").style.display="none";const b=$("board");const pairs=[0,3,4,6][L];
+ const icons=["🎃","👻","🦇","🕷️","🍬","🌙"].slice(0,pairs);let deck=[...icons,...icons].sort(()=>Math.random()-.5);
+ b.innerHTML="";const g=document.createElement("div");g.className="grid";g.style.gridTemplateColumns=`repeat(${pairs===3?3:pairs===4?4:4},1fr)`;b.appendChild(g);
+ let open=[],found=0,tries=0,lock=false,t0=Date.now();$("hudL").textContent="Pairs 0/"+pairs;$("hudR").textContent="";
+ deck.forEach(ic=>{const c=document.createElement("div");c.className="card";c.dataset.i=ic;g.appendChild(c);
+  c.onclick=()=>{if(lock||c.classList.contains("up")||c.classList.contains("done"))return;c.classList.add("up");c.textContent=ic;tone(500,.06);open.push(c);
+   if(open.length===2){tries++;lock=true;const[a,d]=open;if(a.dataset.i===d.dataset.i){setTimeout(()=>{a.classList.add("done");d.classList.add("done");open=[];lock=false;found++;good();
+     $("hudL").textContent=`Pairs ${found}/${pairs}`;if(found===pairs){const sec=Math.round((Date.now()-t0)/1000);setTimeout(()=>cb(`You matched all ${pairs} spooky pairs in ${tries} tries (${sec} seconds). Super spy memory, ${AG}!`),500)}},300)}
+    else setTimeout(()=>{a.classList.remove("up");d.classList.remove("up");a.textContent=d.textContent="";open=[];lock=false},L===1?1300:900)}}})}
+// GAME 3
+function bats(cb){$("cv").style.display="none";const b=$("board");const n=[0,4,6,9][L];b.innerHTML="";const g=document.createElement("div");g.className="holes";
+ g.style.gridTemplateColumns=`repeat(${n===4?2:3},1fr)`;b.appendChild(g);const hs=[];for(let i=0;i<n;i++){const h=document.createElement("div");h.className="hole";g.appendChild(h);hs.push(h)}
+ let score=0,run=true;$("hudL").textContent="🦇 0";const stay=[0,1700,1150,850][L],ghostP=[0,0,.2,.3][L];
+ hs.forEach(h=>h.onpointerdown=()=>{if(!h.dataset.k)return;if(h.dataset.k==="b"){score++;good()}else{score=Math.max(0,score-1);bad()}h.dataset.k="";h.textContent="";h.classList.remove("pop");$("hudL").textContent="🦇 "+score});
+ function pop(){if(!run)return;const free=hs.filter(h=>!h.dataset.k);if(free.length){const h=free[Math.floor(Math.random()*free.length)];const k=Math.random()<ghostP?"g":"b";
+  h.dataset.k=k;h.textContent=k==="b"?"🦇":"👻";h.classList.add("pop");setTimeout(()=>{if(h.dataset.k===k){h.dataset.k="";h.textContent="";h.classList.remove("pop")}},stay)}
+  setTimeout(pop,[0,900,700,550][L])}
+ pop();timer([0,30,35,40][L],0,()=>{run=false;hs.forEach(h=>{h.dataset.k="";h.textContent=""});cb(`You tapped ${score} bat${score==1?"":"s"}! Lightning-fast reflexes, ${AG}!`)})}
+</script></body></html>
